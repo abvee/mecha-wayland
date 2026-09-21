@@ -139,6 +139,39 @@ fn measure_helpers() {
 }
 
 #[test]
+fn the_pass_copies_computed_geometry_into_layout() {
+    let mut app = app();
+    let r = root(&mut app, 300.0, 100.0);
+    let a = child(
+        &mut app,
+        r,
+        fixed(50.0, 40.0)
+            .padding(Insets::new(px(1.0), px(2.0), px(3.0), px(4.0)))
+            .border(Insets::all(px(1.0))),
+    );
+    assert_eq!(app.component::<Layout>(a), Some(&Layout::default()));
+
+    for width in [50.0, 80.0] {
+        app.component_mut::<LayoutStyle>(a).unwrap().width = px(width);
+        app.tick();
+        for id in [r, a] {
+            let computed = app.component::<ComputedLayout>(id).unwrap();
+            let layout = app.component::<Layout>(id).unwrap();
+            assert_eq!(
+                *layout,
+                Layout {
+                    rect: computed.rect,
+                    padding: computed.padding,
+                    border: computed.border,
+                }
+            );
+            assert_eq!(layout.content(), computed.content());
+        }
+        assert_eq!(app.component::<Layout>(a).unwrap().rect.width(), width);
+    }
+}
+
+#[test]
 fn layout_content_is_inside_padding_and_border() {
     let l = ComputedLayout {
         rect: Rect::new(10.0, 20.0, 100.0, 50.0),

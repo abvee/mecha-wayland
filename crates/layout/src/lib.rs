@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
-//! The layout module: `LayoutStyle` and `Measure` in, `Layout` out,
+//! The layout module: `LayoutStyle` and `Measure` in, `ComputedLayout` out,
 //! through taffy's flexbox and block algorithms over the core's columns.
+//! The result is also copied into the renderer-facing `Layout`.
 //!
 //! # Model
 //!
@@ -11,9 +12,9 @@
 //!   lay out. Its subtree is laid out in its coordinates, the root's box
 //!   at the origin, sized by the root's own style. A node under no root is
 //!   never laid out.
-//! - Every node carries a [`Layout`], the resolved box in whole pixels,
-//!   written by the pass only when it changed, so `OnChanged<Layout>`
-//!   names exactly the boxes that moved.
+//! - Every node carries a [`ComputedLayout`], the resolved box in whole
+//!   pixels, and an independent [`Layout`] read by the renderer. For now,
+//!   the pass writes the same geometry to both, only when it changed.
 //! - The pass runs on `PostTick`, ahead of the core's `OnChanged` drains,
 //!   and takes the change records for the three inputs itself, so
 //!   `OnChanged<LayoutStyle>`, `OnChanged<Measure>` and
@@ -84,8 +85,9 @@ use tree::{LayoutTree, taffy_id};
 
 pub mod prelude {
     pub use crate::{
-        Align, Available, Constraints, Direction, Display, Justify, ComputedLayout, LayoutDone,
-        LayoutModule, LayoutRoot, LayoutStyle, Measure, Position, Val, Wrap, auto, percent, px,
+        Align, Available, ComputedLayout, Constraints, Direction, Display, Justify, Layout,
+        LayoutDone, LayoutModule, LayoutRoot, LayoutStyle, Measure, Position, Val, Wrap, auto,
+        percent, px,
     };
 }
 
@@ -216,7 +218,7 @@ impl fmt::Debug for Measure {
 }
 
 // ---------------------------------------------------------------------------
-// LayoutRoot, Layout
+// LayoutRoot, ComputedLayout, Layout
 // ---------------------------------------------------------------------------
 
 /// Marks the top of one independently laid-out tree. Only the subtree
@@ -231,7 +233,7 @@ impl Component for LayoutRoot {}
 /// The box resolved for a node: rounded to whole pixels, in its root's
 /// coordinates. `padding` and `border` are what the content box is inset
 /// by. Written by the pass only, and only when it changed, so
-/// `OnChanged<Layout>` names exactly the nodes whose box moved.
+/// `OnChanged<ComputedLayout>` names exactly the nodes whose box moved.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct ComputedLayout {
     pub rect: Rect,
@@ -242,6 +244,29 @@ pub struct ComputedLayout {
 impl Component for ComputedLayout {}
 
 impl ComputedLayout {
+    /// The rect inside padding and border, each dimension clamped at zero.
+    pub fn content(&self) -> Rect {
+        self.rect.inset(Insets::new(
+            self.padding.top + self.border.top,
+            self.padding.right + self.border.right,
+            self.padding.bottom + self.border.bottom,
+            self.padding.left + self.border.left,
+        ))
+    }
+}
+
+/// The renderer-facing box, in its root's coordinates. Independent of
+/// [`ComputedLayout`]; for now the layout pass copies its result here.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Layout {
+    pub rect: Rect,
+    pub padding: Insets<f32>,
+    pub border: Insets<f32>,
+}
+
+impl Component for Layout {}
+
+impl Layout {
     /// The rect inside padding and border, each dimension clamped at zero.
     pub fn content(&self) -> Rect {
         self.rect.inset(Insets::new(
@@ -326,6 +351,7 @@ impl Module for LayoutModule {
             .register_component::<Measure>()
             .register_component::<LayoutRoot>()
             .register_component::<ComputedLayout>()
+            .register_component::<Layout>()
             .register_component::<Scratch>()
             .init_resource::<DirtyRoots>()
             .system(on_spawned)
@@ -349,12 +375,17 @@ fn pass(app: &mut App, _: &PostTick) {
 }
 
 /// One pass over `root`'s subtree. The root is offered max-content space
-/// and sized by its own style. `round_layout` writes every `Layout`.
+/// and sized by its own style. `round_layout` writes both output components.
 fn layout_root(app: &mut App, root: NodeId) {
     let (tree, mut data) = app.split();
-    let (styles, measures, layouts, scratch) =
-        data.query::<(&LayoutStyle, &Measure, &mut ComputedLayout, &mut Scratch)>();
-    let mut view = LayoutTree::new(tree, root, styles, measures, layouts, scratch);
+    let (styles, measures, computed, layouts, scratch) = data.query::<(
+        &LayoutStyle,
+        &Measure,
+        &mut ComputedLayout,
+        &mut Layout,
+        &mut Scratch,
+    )>();
+    let mut view = LayoutTree::new(tree, root, styles, measures, computed, layouts, scratch);
     let id = taffy_id(root);
     compute_root_layout(&mut view, id, TSize::MAX_CONTENT);
     round_layout(&mut view, id);

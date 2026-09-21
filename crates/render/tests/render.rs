@@ -806,7 +806,8 @@ fn a_write_after_the_drain_is_drawn_and_damaged_by_the_frame_that_draws_it() {
     // A `Layout` written between the drain and the frame: nothing marked
     // the node, yet the frame draws it at its new bounds.
     let moved = Rect::new(0.0, 0.0, 60.0, 20.0);
-    app.component_mut::<ComputedLayout>(a).unwrap().rect = moved;
+    app.component_mut::<Layout>(a).unwrap().rect = moved;
+    assert_eq!(app.component::<ComputedLayout>(a).unwrap().rect, A_RECT);
     frame(&mut app, win.id());
     assert_eq!(
         queue(&mut app, win.id(), 1).scissor,
@@ -825,6 +826,23 @@ fn a_write_after_the_drain_is_drawn_and_damaged_by_the_frame_that_draws_it() {
         vec![moved],
         "the late mark finds the rect already current"
     );
+}
+
+#[test]
+fn computed_layout_alone_neither_requests_a_frame_nor_changes_rendered_geometry() {
+    let mut app = app();
+    let (win, a, _) = two_quads(&mut app);
+
+    app.component_mut::<ComputedLayout>(win).unwrap().rect = Rect::ZERO;
+    app.component_mut::<ComputedLayout>(a).unwrap().rect = Rect::ZERO;
+    app.tick();
+    assert!(take_requested().is_empty());
+
+    frame(&mut app, win.id());
+    let q = queue(&mut app, win.id(), 0);
+    assert_eq!(q.size, window_rect().size);
+    assert_eq!(q.opaque.commands.len(), 2);
+    assert_eq!(q.opaque.commands[1].rect, A_RECT);
 }
 
 #[test]

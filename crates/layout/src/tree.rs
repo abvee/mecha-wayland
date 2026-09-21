@@ -1,5 +1,5 @@
 //! `LayoutTree`: the view taffy walks for one root. Holds the tree for
-//! reading and the four column views, and resolves taffy's node id, which
+//! reading and the five column views, and resolves taffy's node id, which
 //! is our slot, back to a live `NodeId` through a map built for the pass.
 //!
 //! Taffy 0.10.1: the traits are `src/tree/traits.rs` (`TraversePartialTree`
@@ -21,7 +21,7 @@ use taffy::{
 };
 
 use crate::style::{Display, LayoutStyle};
-use crate::{Constraints, ComputedLayout, Measure, Scratch};
+use crate::{ComputedLayout, Constraints, Layout, Measure, Scratch};
 
 /// Taffy's id for a node: its slot.
 pub(crate) fn taffy_id(id: NodeId) -> TaffyId {
@@ -41,7 +41,8 @@ pub(crate) struct LayoutTree<'a> {
     slots: Vec<Option<NodeId>>,
     styles: Comps<'a, LayoutStyle>,
     measures: Comps<'a, Measure>,
-    layouts: CompsMut<'a, ComputedLayout>,
+    computed: CompsMut<'a, ComputedLayout>,
+    layouts: CompsMut<'a, Layout>,
     scratch: CompsMut<'a, Scratch>,
 }
 
@@ -51,7 +52,8 @@ impl<'a> LayoutTree<'a> {
         root: NodeId,
         styles: Comps<'a, LayoutStyle>,
         measures: Comps<'a, Measure>,
-        layouts: CompsMut<'a, ComputedLayout>,
+        computed: CompsMut<'a, ComputedLayout>,
+        layouts: CompsMut<'a, Layout>,
         scratch: CompsMut<'a, Scratch>,
     ) -> Self {
         let mut slots: Vec<Option<NodeId>> = Vec::new();
@@ -70,6 +72,7 @@ impl<'a> LayoutTree<'a> {
             slots,
             styles,
             measures,
+            computed,
             layouts,
             scratch,
         }
@@ -295,8 +298,15 @@ impl RoundTree for LayoutTree<'_> {
                 layout.border.left,
             ),
         };
-        if let Some(mut slot) = self.layouts.get_mut(id) {
+        if let Some(mut slot) = self.computed.get_mut(id) {
             slot.set_if_neq(value);
+        }
+        if let Some(mut slot) = self.layouts.get_mut(id) {
+            slot.set_if_neq(Layout {
+                rect: value.rect,
+                padding: value.padding,
+                border: value.border,
+            });
         }
     }
 }

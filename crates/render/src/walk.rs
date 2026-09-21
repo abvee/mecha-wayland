@@ -5,7 +5,7 @@
 
 use app::{Comps, CompsMut, NodeId, Tree};
 use geometry::{Color, Corners, Insets, Rect};
-use layout::ComputedLayout;
+use layout::Layout;
 use paint::{MonochromeSprite, Paint, PolychromeSprite, Quad};
 
 use crate::{Command, Drawn, NO_TILE, rect, scene::Scene};
@@ -97,7 +97,7 @@ pub(crate) fn hand_down(
 /// how many nodes were visited.
 pub(crate) fn walk(
     tree: Tree<'_>,
-    layouts: &Comps<'_, ComputedLayout>,
+    layouts: &Comps<'_, Layout>,
     paints: &Comps<'_, Paint>,
     drawn: &mut CompsMut<'_, Drawn>,
     window: NodeId,
