@@ -179,12 +179,22 @@ fn layout_content_is_inside_padding_and_border() {
         border: Insets::all(1.0),
     };
     assert_eq!(l.content(), Rect::new(15.0, 22.0, 92.0, 44.0));
+    assert_eq!(
+        Layout::from(l),
+        Layout {
+            rect: l.rect,
+            padding: l.padding,
+            border: l.border,
+        }
+    );
+    assert_eq!(Layout::from(l).content(), l.content());
     let tiny = ComputedLayout {
         rect: Rect::new(0.0, 0.0, 10.0, 10.0),
         padding: Insets::all(8.0),
         border: Insets::all(0.0),
     };
     assert_eq!(tiny.content(), Rect::new(8.0, 8.0, 0.0, 0.0));
+    assert_eq!(Layout::from(tiny).content(), tiny.content());
     assert!(!LayoutDone { roots: vec![] }.recomputed());
     assert!(
         LayoutDone {

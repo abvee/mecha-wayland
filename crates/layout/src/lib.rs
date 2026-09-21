@@ -266,6 +266,17 @@ pub struct Layout {
 
 impl Component for Layout {}
 
+/// The default conversion: copy the computed geometry without an effect.
+impl From<ComputedLayout> for Layout {
+    fn from(computed: ComputedLayout) -> Self {
+        Self {
+            rect: computed.rect,
+            padding: computed.padding,
+            border: computed.border,
+        }
+    }
+}
+
 impl Layout {
     /// The rect inside padding and border, each dimension clamped at zero.
     pub fn content(&self) -> Rect {

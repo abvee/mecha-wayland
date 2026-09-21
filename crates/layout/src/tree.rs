@@ -302,11 +302,7 @@ impl RoundTree for LayoutTree<'_> {
             slot.set_if_neq(value);
         }
         if let Some(mut slot) = self.layouts.get_mut(id) {
-            slot.set_if_neq(Layout {
-                rect: value.rect,
-                padding: value.padding,
-                border: value.border,
-            });
+            slot.set_if_neq(Layout::from(value));
         }
     }
 }
