@@ -1,7 +1,7 @@
 //! Module holding the Time resource
 
 use std::time::{Duration, Instant};
-use app::{App, Resource, Tick };
+use app::prelude::*;
 
 /// A sampled monotonic clock, independent of wall-clock time.
 ///

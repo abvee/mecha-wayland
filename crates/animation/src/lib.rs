@@ -29,8 +29,7 @@ pub mod prelude {
     pub use crate::{Animation, AnimationModule, animate_layout};
 	 pub use crate::time::*;
 }
-
-use time::*;
+pub use time::*;
 
 /// The effect chosen by the widget author.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
