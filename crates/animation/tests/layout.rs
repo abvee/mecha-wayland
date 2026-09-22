@@ -39,7 +39,7 @@ impl Widget for TestWidget {
 
 fn setup(attach_handlers: bool) -> (App, Handle<TestWidget>) {
     let mut app = App::new();
-    app.add_module(LayoutModule).add_module(AnimationModule);
+    app.add_module(LayoutModule);
     let node = app.spawn_with(
         app.root(),
         TestBuilder { attach_handlers },
@@ -56,15 +56,8 @@ fn setup(attach_handlers: bool) -> (App, Handle<TestWidget>) {
 }
 
 #[test]
-fn every_node_defaults_to_no_animation() {
-    let (app, node) = setup(false);
+fn animation_defaults_to_none() {
     assert_eq!(Animation::default(), Animation::None);
-    for id in [app.root(), node.id()] {
-        assert_eq!(
-            app.component::<SelectedAnimation>(id),
-            Some(&SelectedAnimation(Animation::None))
-        );
-    }
 }
 
 #[test]
@@ -104,10 +97,10 @@ fn the_same_handler_accepts_another_event_and_equal_output_is_not_a_change() {
 }
 
 #[test]
-fn the_module_does_not_attach_handlers_or_apply_the_selection_on_its_own() {
+fn the_module_does_not_attach_handlers_or_convert_layout_on_its_own() {
     let (mut app, node) = setup(false);
+    app.add_module(AnimationModule);
     app.component_mut::<Layout>(node).unwrap().rect = Rect::ZERO;
-    *app.component_mut::<SelectedAnimation>(node).unwrap() = SelectedAnimation(Animation::None);
 
     app.emit(Click, node);
     app.emit(HoverEnter, node);
