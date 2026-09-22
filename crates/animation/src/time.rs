@@ -60,7 +60,3 @@ impl Time {
         self.last_update = Some(now);
     }
 }
-
-pub fn update_time(app: &mut App, _: &Tick) {
-    app.resource_mut::<Time>().update();
-}

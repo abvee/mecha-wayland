@@ -21,7 +21,7 @@
 //! assert_eq!(app.resource::<Time>().delta(), Duration::ZERO);
 //! ```
 
-use app::{App, Component, Context, Event, Module, Widget};
+use app::prelude::*;
 use layout::{ComputedLayout, Layout};
 
 mod time;
@@ -92,4 +92,8 @@ impl Module for AnimationModule {
             .init_resource::<Time>()
             .system(update_time);
     }
+}
+
+fn update_time(app: &mut App, _: &Tick) {
+    app.resource_mut::<Time>().update();
 }
