@@ -1,7 +1,7 @@
 //! Module holding the Time resource
 
-use std::time::{Duration, Instant};
 use app::prelude::*;
+use std::time::{Duration, Instant};
 
 /// A sampled monotonic clock, independent of wall-clock time.
 ///
@@ -15,8 +15,9 @@ use app::prelude::*;
 /// [`Duration::as_secs_f64`], rather than accumulating floating-point time.
 /// A duration-based animation can record `elapsed()` at its start and
 /// subtract that from later samples to measure its own progress.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Time {
+    automatic: bool,
     last_update: Option<Instant>,
     elapsed: Duration,
     delta: Duration,
@@ -24,7 +25,27 @@ pub struct Time {
 
 impl Resource for Time {}
 
+impl Default for Time {
+    fn default() -> Self {
+        Self {
+            automatic: true,
+            ..Self::manual()
+        }
+    }
+}
+
 impl Time {
+    /// A clock driven only by [`Time::update_at`]. Automatic updates are
+    /// no-ops, allowing deterministic ticks, triggers and frames in tests.
+    pub fn manual() -> Self {
+        Self {
+            automatic: false,
+            last_update: None,
+            elapsed: Duration::ZERO,
+            delta: Duration::ZERO,
+        }
+    }
+
     /// Time from the first sample to the latest sample.
     pub fn elapsed(&self) -> Duration {
         self.elapsed
@@ -36,16 +57,18 @@ impl Time {
         self.delta
     }
 
-    /// Sample the system's monotonic clock.
+    /// Sample the system's monotonic clock, unless this is a manual clock.
     pub fn update(&mut self) {
-        self.update_at(Instant::now());
+        if self.automatic {
+            self.update_at(Instant::now());
+        }
     }
 
     /// Supply a sample explicitly, for deterministic tests or an external
     /// clock driver. Equal consecutive samples produce a zero delta.
     ///
-    /// Use one clock driver: advancing to synthetic future instants and
-    /// then calling [`Time::update`] can make the next sample go backwards.
+    /// Use [`Time::manual`] for synthetic timestamps while running the app;
+    /// otherwise a subsequent system-clock update can go backwards.
     ///
     /// # Panics
     ///

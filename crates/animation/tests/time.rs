@@ -81,6 +81,29 @@ fn update_samples_the_system_clock() {
     assert_eq!(time.elapsed(), time.delta());
 }
 
+#[test]
+fn manual_time_is_advanced_only_by_explicit_samples_even_when_the_app_ticks() {
+    let mut time = Time::manual();
+    let start = Instant::now();
+    time.update_at(start);
+    time.update_at(start + Duration::from_millis(20));
+    time.update();
+    assert_eq!(time.elapsed(), Duration::from_millis(20));
+    assert_eq!(time.delta(), Duration::from_millis(20));
+
+    let mut app = App::new();
+    app.insert_resource(time);
+    app.add_module(AnimationModule);
+    app.tick();
+    app.tick();
+    assert_eq!(app.resource::<Time>().elapsed(), Duration::from_millis(20));
+    app.resource_mut::<Time>()
+        .update_at(start + Duration::from_millis(50));
+    app.tick();
+    assert_eq!(app.resource::<Time>().elapsed(), Duration::from_millis(50));
+    assert_eq!(app.resource::<Time>().delta(), Duration::from_millis(30));
+}
+
 #[derive(Default)]
 struct Samples(Vec<(Duration, Duration)>);
 impl Resource for Samples {}
