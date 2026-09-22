@@ -21,6 +21,9 @@ dependencies = [
  "app",
  "geometry",
  "layout",
+ "paint",
+ "render",
+ "window",
 ]
 
 [[package]]
