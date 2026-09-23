@@ -37,6 +37,7 @@ members = [
     "crates/widgets",
     "crates/window",
     "crates/theme",
+    "examples/basic",
 ]
 resolver = "3"
 
