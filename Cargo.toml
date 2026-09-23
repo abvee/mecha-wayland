@@ -24,6 +24,7 @@ theme.workspace = true
 [workspace]
 members = [
     "crates/app",
+    "crates/animation"
     "crates/atlas",
     "crates/geometry",
     "crates/gles",
